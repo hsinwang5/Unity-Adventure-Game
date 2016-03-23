@@ -1,0 +1,16 @@
+using UnityEngine;
+using System.Collections;
+
+public class GizmoSphere : MonoBehaviour {
+    //Attach this script to any gameObject to provide a wire-grid visual. Very useful for objects that don't have any visual component, such as events, attachpoints, etc.
+
+	public float gizmoSize = .75f;
+	public Color gizmoColor = Color.yellow;
+
+	void OnDrawGizmos() 
+    {
+		Gizmos.color = gizmoColor;
+		Gizmos.DrawWireSphere (transform.position, gizmoSize);
+	}
+
+}
