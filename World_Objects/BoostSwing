@@ -1,0 +1,94 @@
+// List of search terms – replace <> with angle [] brackets
+// search <**todo> for code that still needs optimization/changing
+// search <**critical> for code that needs fixing ASAP
+// search <**bugsplat> for code that is buggy/broken/not working
+// search <**debug> for blocks of code/functions that were commented out
+
+using UnityEngine;
+using System.Collections;
+
+/*This class controls the behavior of Swing objects in the game world,
+specifically the swing handle the player hangs from */
+
+public class BoostSwing : MonoBehaviour {
+
+	public float thrust = 500f;	
+	public GameObject telePoint;
+
+	ConfigurableJoint Joint;
+	GameObject Troll;
+	Rigidbody Swing;
+	TrollController PlayerScript;
+
+	bool isActive = false;
+	bool push = false;
+	bool reset = false;
+
+	// Use this for initialization
+	void Awake () {
+		Troll = GameObject.FindGameObjectWithTag ("Player");
+		Swing = GetComponent<Rigidbody> ();
+		Joint = GetComponent<ConfigurableJoint> ();
+		PlayerScript = Troll.GetComponent<TrollController> ();
+	}
+
+	void Start () {
+
+	}
+
+	void Update () {
+
+		 if (isActive && Joint != null) {
+			//This button activates when swing is activated, allowing player to swing
+			//(See Fixedupdate for the actual physica calculation, search **1)
+			bool alt = Input.GetButton("Fire2");
+			if (alt){
+				push = true;
+			}
+
+			//This button launches the player by reducing joint break force to 1
+			bool space = Input.GetButtonDown ("Jump");
+			if (space){
+				Joint.breakForce = 1f;
+			}
+		}
+	}
+
+	void FixedUpdate(){
+		// [**1] - Adds a force to the swing when button is pressed in Update()
+		if (push) {
+			Swing.AddForce(transform.forward * thrust, ForceMode.Impulse);
+			push = false;
+		}
+	}
+
+	void OnTriggerEnter (Collider other){
+		//if there is no hook on the swing, create one when player enters swing area
+		if (other.gameObject.tag == "Player") {
+			if (reset){
+				this.gameObject.AddComponent<ConfigurableJoint>();
+				Joint = GetComponent<ConfigurableJoint> ();
+				Joint.xMotion = ConfigurableJointMotion.Limited;
+				Joint.yMotion = ConfigurableJointMotion.Limited;
+				Joint.zMotion = ConfigurableJointMotion.Limited;
+				Joint.angularXMotion = ConfigurableJointMotion.Limited;
+				Joint.angularYMotion = ConfigurableJointMotion.Limited;
+				Joint.angularZMotion = ConfigurableJointMotion.Limited;
+				reset = false;
+			}
+			//On collision with swing handle, resets player rotation and makes player hang from swing
+			//by assigning player as a connecting joint
+			Vector3 vector1 = new Vector3(0f, 0f, 0f);
+			Quaternion rotation = Quaternion.Euler(vector1);
+			PlayerScript.BecomePassenger(false, rotation, telePoint.transform.position);
+			Joint.connectedBody = Troll.GetComponent<Rigidbody> ();
+			isActive = true;
+		}
+	}
+
+	void OnTriggerExit (Collider other){
+		if (other.gameObject.tag == "Player") {
+			reset = true;
+		}
+	}
+}
