@@ -1,0 +1,47 @@
+using UnityEngine;
+using System.Collections;
+
+public class TripAlarm : MonoBehaviour {
+
+    public GameObject capsuleCastPoint2;
+    public GameObject capsuleCastPoint1;
+    public GameObject alarmLight;
+
+    public float capsuleRadius;
+    public float capsuleDistance;
+
+    bool isActive = false;
+
+	// Use this for initialization
+	void Start () {
+        alarmLight.SetActive(false);
+	}
+	
+	// Update is called once per frame
+	void Update () {
+        if (isActive)
+        {
+            alarmLight.transform.Rotate(0, 90 * Time.deltaTime, 0);
+        }
+	}
+
+    RaycastHit[] HitArray;
+
+    void OnTriggerEnter(Collider other)
+    {
+        if (other.tag == "Player")
+        {
+            alarmLight.SetActive(true);
+            isActive = true;
+            alarmLight.transform.Rotate(0, 90, 0);
+            HitArray = Physics.CapsuleCastAll(capsuleCastPoint1.transform.position, capsuleCastPoint2.transform.position, capsuleRadius, Vector3.forward, capsuleDistance, LayerMask.GetMask("Enemy"));
+            foreach (RaycastHit element in HitArray)
+            {
+                if (element.collider.tag == "Enemy")
+                {
+                    element.collider.gameObject.GetComponent<EnemyBeta>().setDefault();
+                }
+            }
+        }
+    }
+}
