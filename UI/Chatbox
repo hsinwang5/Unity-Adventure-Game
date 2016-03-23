@@ -1,0 +1,43 @@
+//Test
+using UnityEngine;
+using UnityEngine.UI;
+using System.Collections;
+
+public class ChatBox : MonoBehaviour {
+
+	/*TextAsset File;
+	public Text gameText;
+	
+	string dialog;
+	string[] strArr = null;
+	int lineNumber = 0;*/
+
+	// Use this for initialization
+	void Start () {
+		this.gameObject.SetActive (false);
+		/*File = Resources.Load ("RobotKyle") as TextAsset;
+		char[] splitter = {'#'};
+		strArr = File.text.Split (splitter);*/
+	}
+
+	// Update is called once per frame
+	void Update () {
+		//dialog = strArr [lineNumber];
+		//gameText.text = dialog;
+	}
+
+	/*public void NextButton(){
+		int length = strArr.Length;
+		if (lineNumber < length-1) {
+			lineNumber += 1;
+			print (lineNumber<length);
+		} else {
+			CancelButton();
+		}
+	}
+
+	public void CancelButton(){
+		this.gameObject.SetActive (false);
+		lineNumber = 0;
+	}*/
+}
