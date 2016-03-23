@@ -1,0 +1,41 @@
+using UnityEngine;
+using System.Collections;
+
+public class Pickup : MonoBehaviour {
+  //base class for pickup behavior
+
+	public float maxRange;										//How high and low the object goes
+	public float oscillate; 									//How fast it floats up and down
+
+	protected float angle;
+	protected float offset;
+	protected float step;	
+	
+	// Use this for initialization
+	void Start () {
+
+	}
+
+	/// <summary>
+	/// Oscillates the pickup in the specified range and floatspeed, originating from the Y value offset.
+	/// </summary>
+	/// <param name="range">Range of height variation</param>
+	/// <param name="floatspeed">How fast it oscillates</param>
+	/// <param name="pickupoffset">The original Y value of the pickup's transform</param>
+	protected void Oscillate(float range, float floatspeed, float pickupoffset){
+		step += floatspeed * Time.deltaTime;
+		if (step > 100000f) {
+			step = 1f;
+		}
+		Vector3 vector = new Vector3(transform.position.x, (Mathf.Sin(step) * range)+pickupoffset, transform.position.z);
+		transform.position = vector;
+	}
+
+	/// <summary>
+	/// Rotates the pickup by the specified angle, recommended angle value 45
+	/// </summary>
+	/// <param name="angle">Angle.</param>
+	protected void Rotate(float angle){
+		transform.Rotate (angle * Time.deltaTime, angle * Time.deltaTime, angle * Time.deltaTime);
+	}
+}
