@@ -1,0 +1,102 @@
+using UnityEngine;
+using System.Collections;
+
+/*This script controls cannon behavior, and should be attached to the cannon base. Drag appropriate references 
+ * to their slots for it to work properly. */
+
+public class CannonScript : MonoBehaviour {
+
+	public GameObject Telepoint;
+	public GameObject Gunbarrel;
+	public GameObject Player;
+	public GameObject ButtonPrompt;
+    public GameObject MainCamera;
+
+	public float turnrate = 50f;
+	public float barrelForce = 50f;
+
+	FixedJoint Joint;
+	TrollController PlayerScript;
+	Rigidbody baseRigidBody;
+	Rigidbody playerRigidBody;
+    CamControlBackup CameraScript;
+
+	bool isActive = false;									//allows canon to be controlled by player input
+	bool reset = false;										//If true, resets cannon to neutral when player uses
+	bool canGetOn = false;
+
+	// Use this for initialization
+	void Start () {
+		Joint = Gunbarrel.GetComponent<FixedJoint> ();
+		PlayerScript = Player.GetComponent<TrollController> ();
+		baseRigidBody = gameObject.GetComponent<Rigidbody> ();
+		playerRigidBody = Player.GetComponent<Rigidbody> ();
+		ButtonPrompt.gameObject.SetActive(false);
+        CameraScript = MainCamera.GetComponent<CamControlBackup>();
+	}
+	
+	void Update() {
+		//Allows player to mount the cannon when inside trigger point, and turns on cannon controls
+		if(canGetOn){
+			if(Input.GetButtonDown("Fire2")){
+				PlayerScript.BecomePassenger(true, Gunbarrel.transform.rotation, Telepoint.transform.position);
+				Joint.connectedBody = Player.GetComponent<Rigidbody> ();
+				isActive = true;
+			}
+		}
+	}
+	
+	// Update is called once per frame
+	void FixedUpdate () {
+		if (isActive) {
+			//Horizontal cannon movement
+			float h = Input.GetAxisRaw("Horizontal");
+			//float v = Input.GetAxisRaw("Vertical");
+			Quaternion rot = Quaternion.Euler(0f, h * Time.deltaTime * turnrate, 0f);
+			baseRigidBody.MoveRotation(baseRigidBody.rotation * rot);
+
+			//Blast out of cannon
+			bool space = Input.GetButton("Jump");
+			if (space) {
+				Joint.breakForce = 1f;
+				playerRigidBody.AddForce(Player.transform.forward * barrelForce, ForceMode.Impulse);
+                CameraScript.allowRotation = true;
+				PlayerScript.Invisibility(false);
+				PlayerScript.Flail();
+				isActive = false;
+				space = false;
+			}
+		}
+	}
+
+    void LateUpdate()
+    {
+        if (isActive)
+        {
+            CameraScript.allowRotation = false;
+            MainCamera.transform.rotation = transform.rotation;
+        }
+    }
+
+	void OnTriggerEnter(Collider other) {
+		if (other.gameObject.tag == "Player") {
+			if (reset){
+				Gunbarrel.AddComponent<FixedJoint>();
+				Joint = Gunbarrel.GetComponent<FixedJoint> ();
+			}
+			canGetOn = true;
+			ButtonPrompt.gameObject.SetActive(true);
+		}
+	}
+	
+
+	void OnTriggerExit(Collider other){
+		if (other.gameObject.tag == "Player") {
+			if (!reset) {
+				reset = true;
+			}
+			canGetOn = false;
+			ButtonPrompt.gameObject.SetActive(false);
+		}
+	}
+}
