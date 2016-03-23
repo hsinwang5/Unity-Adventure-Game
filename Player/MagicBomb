@@ -1,0 +1,148 @@
+using UnityEngine;
+using UnityEngine.UI;
+using System.Collections;
+
+/* This script controls the behavior of the bomb projectile magic power fired by the player when they press 
+ * left mouse click. The bomb projectiles actually exist below the level, and are simply summoned up
+ * in an object pool in order to save cpu processing time with find functions. Make sure there are enough objects in the 
+ * pool to sustain "rapid-firing" if desired*/
+
+public class MagicBomb : MonoBehaviour
+{
+
+    public float growSpeed;
+    public float flashSpeed;
+    public float throwForce;
+    public float explosionForce;
+    public float explosionRadius;
+    public float upwardsForce;
+
+    GameObject MainCam;
+    GameObject Player;
+    GameObject SummonPoint;
+    GameObject BombProjectilesArray;
+    MeshRenderer BombRender;
+    Rigidbody BombBody;
+    SphereCollider bombCollider;
+
+    bool isThrown = false;
+    bool summon;
+    bool maxPower;
+    float flashTimer;
+    float timeToDie = 0f;
+    float life = 5f;
+
+    // Use this for initialization
+    void Awake()
+    {
+        Player = GameObject.FindGameObjectWithTag("Player");
+        MainCam = GameObject.FindGameObjectWithTag("MainCamera");
+        BombRender = gameObject.GetComponent<MeshRenderer>();
+        BombBody = gameObject.GetComponent<Rigidbody>();
+        SummonPoint = Player.transform.Find("BombSummonPoint").gameObject;
+        BombProjectilesArray = GameObject.FindGameObjectWithTag("BombProjectilesArray");
+        gameObject.transform.parent = BombProjectilesArray.transform;
+        bombCollider = gameObject.GetComponent<SphereCollider>();
+        flashTimer = 0f;
+        summon = true;
+        maxPower = false;
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+
+        transform.rotation = MainCam.transform.rotation;
+        flashTimer += Time.deltaTime;
+
+        //Lets ball follow above player while charging
+        if (summon)
+        {
+            transform.position = SummonPoint.transform.position;
+        }
+
+        if (transform.localScale.x < .7 && isThrown == false)
+        {
+            transform.localScale += new Vector3(growSpeed * Time.deltaTime, growSpeed * Time.deltaTime, growSpeed * Time.deltaTime);
+        }
+
+        //flash speed determines how quickly ball flashes, since once it runs flashtimer is reset to 0 and must grow to > flashspeed to execute again
+        if (transform.localScale.x >= .7 && flashTimer > flashSpeed && isThrown == false)
+        {
+            maxPower = true;
+            flashTimer = 0f;
+            StartCoroutine(Flash());
+        }
+
+        //Destroy Bomb after 2 seconds have passed
+        DestroyBomb();
+    }
+
+    IEnumerator Flash()
+    {
+        BombRender.enabled = false;
+        yield return new WaitForSeconds(.2f);
+        BombRender.enabled = true;
+    }
+
+    public void ThrowBomb()
+    {
+        BombBody.AddForce(transform.forward * throwForce, ForceMode.Impulse);
+        BombRender.enabled = true;
+        timeToDie = Time.time + (life - 3);
+        isThrown = true;
+        summon = false;
+    }
+
+    private void DestroyBomb()
+    {
+        if (timeToDie < Time.time)
+        {
+            transform.position = new Vector3(0, -30, 0);
+            gameObject.SetActive(false);
+        }
+    }
+
+    public void DestroyBombImmediate()
+    {
+        transform.position = new Vector3(0, -30, 0);
+        gameObject.SetActive(false);
+    }
+
+    public void SummonBomb()
+    {
+        transform.localScale = (new Vector3(.1f, .1f, .1f));
+        timeToDie = Time.time + life;
+        BombBody.velocity = Vector3.zero;
+        BombRender.enabled = true;
+        bombCollider.enabled = true;
+        summon = true;
+        isThrown = false;
+    }
+
+    void OnTriggerEnter(Collider other)
+    {
+
+        Collider[] colliderArray;
+
+        colliderArray = Physics.OverlapSphere(transform.position, 3, Physics.AllLayers);
+
+        for (int i = 0; i < colliderArray.Length; i++)
+        {
+            //Disables visual renders, bomb velocity, and colliders
+            if (colliderArray[i].tag == "Enemy" && maxPower == true)
+            {
+                //colliderArray[i].attachedRigidbody.AddExplosionForce(explosionForce, transform.position, explosionRadius, upwardsForce, ForceMode.Impulse);
+                //colliderArray[i].enabled = false;
+                //DestroyBombImmediate();
+                BombRender.enabled = false;
+                BombBody.velocity = Vector3.zero;
+                bombCollider.enabled = false;
+            }
+            if (colliderArray[i].tag == "Enemy" && maxPower == false)
+            {
+                DestroyBombImmediate();
+            }
+        }
+    }
+}
