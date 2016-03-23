@@ -1,0 +1,59 @@
+// List of search terms – replace <> with angle [] brackets
+// search <**todo> for code that still needs optimization/changing
+// search <**critical> for code that needs fixing ASAP
+// search <**bugsplat> for code that is buggy/broken/not working
+// search <**debug> for blocks of code/functions that were commented out
+
+using UnityEngine;
+using System.Collections;
+using UnityEngine.UI;
+
+public class npcDialog : MonoBehaviour {
+    //This code requires a Singleton dialog handler manager to be present, refer to DialogHandler Script
+
+	public GameObject ButtonPrompt;
+	public GameObject Canvas;
+
+	bool allowTalk = false;
+	GameObject DialogHelper;
+	DialogHandlerScript Script;
+    TrollController PlayerScript;
+	//getters and setters
+
+
+	// Use this for initialization
+	void Start () {
+		ButtonPrompt.gameObject.SetActive(false);
+		DialogHelper = GameObject.FindGameObjectWithTag ("DialogHelper");
+		Script = DialogHelper.GetComponent<DialogHandlerScript> ();
+        PlayerScript = GameObject.FindGameObjectWithTag("Player").GetComponent<TrollController>();
+	}
+	
+	// Update is called once per frame
+	void Update () {
+		if (allowTalk) {
+			bool talk = Input.GetButtonDown("Fire2");
+			if (talk){
+                PlayerScript.DisablePlayer();
+				Canvas.gameObject.SetActive(true);
+				Script.UpdateText();
+			}
+		}
+	}
+
+	void OnTriggerEnter (Collider other){
+		if (other.gameObject.tag == "Player") {
+			ButtonPrompt.gameObject.SetActive(true);
+			allowTalk = true;
+			Script.LoadText(this.gameObject.name);
+		}
+	}
+
+	void OnTriggerExit (Collider other) {
+		if (other.gameObject.tag == "Player") {
+			ButtonPrompt.gameObject.SetActive(false);
+			allowTalk = false;
+			Script.CancelButton();
+		}
+	}
+}
