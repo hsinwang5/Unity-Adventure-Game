@@ -1,0 +1,395 @@
+// List of search terms – replace <> with angle [] brackets
+// search <**todo> for code that still needs optimization/changing
+// search <**critical> for code that needs fixing ASAP
+// search <**bugsplat> for code that is buggy/broken/not working
+// search <**debug> for blocks of code/functions that are for debug purposes (should be removed later)
+
+using UnityEngine;
+using System.Collections;
+
+//[**todo] Enable enum playerstate to control behavior instead of using bool allowInput
+
+//The original player model was a badly made troll ripped from a bad game, that's why there's methods referring to Trolls. Hindsight 20/20, don't feel like refactoring yet.
+
+public class TrollController : MonoBehaviour
+{
+
+    public enum PlayerState {DISABLED = 1, DEFAULT = 2, DIALOG = 3};
+
+    public PlayerState ActiveState = PlayerState.DEFAULT;
+
+    public GameObject Player;
+    public GameObject PlayerGizmo;
+    public GameObject Camera;
+    public GameObject RenderContainer;
+
+    public float moveSpeed = 5f;
+    public float jumpForce = 50f;
+    public float jumpHeight = 3;
+    public float jumpCount = 0;
+    public bool allowInput = true;
+    public bool magicBombAbility = false;
+    bool enableFaceFunction = true;
+    public int fpsCAP = 60;
+
+    SkinnedMeshRenderer[] renderArray;
+    Animator anim;
+    Rigidbody playerRigidBody;
+    MagicBomb BombScript;
+
+    bool isJump = false;
+    Vector3 movement;
+
+    //[**debug] - test frame rate
+    void Awake()
+    {
+        QualitySettings.vSyncCount = 0;
+        Application.targetFrameRate = fpsCAP;
+    }
+
+    // Use this for initialization
+    void Start()
+    {
+        anim = GetComponent<Animator>();
+        playerRigidBody = GetComponent<Rigidbody>();
+        playerRigidBody.freezeRotation = true;
+        FreezeRotation();
+        renderArray = RenderContainer.GetComponentsInChildren<SkinnedMeshRenderer>();
+        
+        #region Player Magic Bomb Ability
+        projectiles = new GameObject[numberOfProjectilesToCreate];
+        InstantiateProjectiles();
+        #endregion
+
+        magicBombAbility = true;
+
+    }
+
+    // Update is called once per frames
+    void Update()
+    {
+
+        if (allowInput)
+        {
+            isJump = Input.GetKey("space");
+
+            #region Player Magic Bomb Ability
+
+            if (magicBombAbility)
+            {
+
+                if (Input.GetButtonDown("Mouse1"))
+                {
+                    currentProjectile = ActivateProjectile();
+                    enableFaceFunction = false;
+
+                }
+                if (Input.GetButtonUp("Mouse1"))
+                {
+                    ThrowProjectile(currentProjectile);
+                    enableFaceFunction = true;
+                }
+            }
+                      
+            #endregion
+
+        }
+    }
+
+    void FixedUpdate()
+    {
+        //Catches input keys and produces movement on player [**todo] clean up code
+        if (allowInput)
+        {
+            float wsMove = Input.GetAxisRaw("Vertical") * moveSpeed * Time.deltaTime;
+            float adMove = Input.GetAxisRaw("Horizontal") * moveSpeed * Time.deltaTime;
+
+            Move(adMove, wsMove);
+
+            if (enableFaceFunction)
+            {
+                Face(adMove, wsMove);
+            }
+            else
+            {
+                transform.rotation = PlayerGizmo.transform.rotation;
+            }
+
+            if (isJump)
+            {
+                Jump();
+            }
+        }
+    }
+
+    void LateUpdate()
+    {
+        //The following block of code makes Gizmo follow camera's rotation
+        //float gizmoY = Camera.transform.eulerAngles.y;
+        Vector3 vectorGizmo = new Vector3(0f, Camera.transform.eulerAngles.y, 0f);
+        Quaternion gizmoRot = Quaternion.Euler(vectorGizmo);
+        PlayerGizmo.transform.rotation = gizmoRot;
+    }
+
+    #region Player Control public functions
+
+    public void DisablePlayer()
+    {
+        allowInput = false;
+        SetWalk(false);
+    }
+
+    public void EnablePlayer()
+    {
+        allowInput = true;
+    }
+
+    public void AllowRotation()
+    {
+        playerRigidBody.freezeRotation = false;
+    }
+
+    public void FreezeRotation()
+    {
+        playerRigidBody.freezeRotation = true;
+    }
+
+    /// <summary>
+    /// Sets the player's walk animation.
+    /// </summary>
+    /// <param name="b">If set to <c>true</c> b.</param>
+    public void SetWalk(bool b)
+    {
+        anim.SetBool("isWalking", b);
+    }
+
+    /// <summary>
+    /// Makes player invisible when set to true.
+    /// </summary>
+    /// <param name="b">If set to <c>true</c> b.</param>
+    public void Invisibility(bool b)
+    {
+        foreach (SkinnedMeshRenderer x in renderArray)
+        {
+            x.enabled = !b;
+        }
+    }
+
+    /// <summary>
+    /// Make the player flail while he is in the air. Stop upon collision with ground.
+    /// </summary>
+    public void Flail()
+    {
+        anim.SetBool("isFlailing", true);
+    }
+
+    /// <summary>
+    /// Becomes a passenger, stopping input and animations, and allowing rotations with vehicle.	
+    /// </summary>
+    /// <param name="allowInvisible">If set to <c>true</c> allow invisible.</param>
+    /// <param name="rot">Rotation of player</param>
+    /// <param name="position">Position of player</param>
+    public void BecomePassenger(bool allowInvisible, Quaternion rot, Vector3 position)
+    {
+        allowInput = false;
+        anim.SetBool("isWalking", false);
+        anim.SetBool("isJumping", false);
+        playerRigidBody.freezeRotation = false;
+        Player.transform.rotation = rot;
+        Player.transform.position = position;
+        if (allowInvisible)
+        {
+            foreach (SkinnedMeshRenderer x in renderArray)
+            {
+                x.enabled = !allowInvisible;
+            }
+        }
+    }
+
+    #endregion
+
+    void Move(float h, float v)
+    {
+        movement = new Vector3(h, 0f, v);
+        movement = movement.normalized * moveSpeed * Time.deltaTime;
+        movement = PlayerGizmo.transform.TransformDirection(movement);
+
+        if (h != 0 || v != 0)
+        {
+            SetWalk(true);
+            playerRigidBody.MovePosition(transform.position + movement);
+        }
+        else
+        {
+            SetWalk(false);
+        }
+
+    }
+
+    //makes the player jump through physics
+    void Jump()
+    {
+        if (jumpCount < jumpHeight)
+        {
+            playerRigidBody.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+            jumpCount += 1;
+            anim.SetBool("isJumping", true);
+        }
+    }
+
+    void OnTriggerExit(Collider other)
+    {
+        //makes them flail in mid-air when released from swing
+        if (other.gameObject.tag == "Swing")
+        {
+            Flail();
+        }
+    }
+
+    void OnCollisionEnter(Collision other)
+    {
+        //Upon touching ground, orients the player to neutral and freezes physics-based rotation,
+        //also allows player to jump again
+        if (other.gameObject.tag == "Ground")
+        {
+            jumpCount = 0;
+            Vector3 vector = new Vector3(0f, Player.transform.rotation.eulerAngles.y, 0f);
+            Quaternion rotation = Quaternion.Euler(vector);
+            playerRigidBody.rotation = rotation;
+            FreezeRotation();
+            anim.SetBool("isFlailing", false);
+            anim.SetBool("isJumping", false);
+            if (!allowInput)
+            {
+                allowInput = true;
+            }
+        }
+
+        if (other.gameObject.tag == "Wall")
+        {
+            if (!allowInput)
+            {
+                allowInput = true;
+            }
+        }
+    }
+
+
+    //Looks convoluted, and it probably is, but this just makes the player face the direction he's walking,
+    //without making the camera turn as well [**todo] Find an easier way?
+    void Face(float h, float v)
+    {
+
+        Quaternion to;
+
+        if (h > 0 && v > 0)
+        {
+            to = Quaternion.Euler(0, PlayerGizmo.transform.eulerAngles.y + 45, 0);
+            Quaternion newRotation = Quaternion.Lerp(playerRigidBody.transform.rotation, to, Time.deltaTime * 20f);
+            playerRigidBody.MoveRotation(newRotation);
+        }
+        else if (h < 0 && v > 0)
+        {
+            to = Quaternion.Euler(0, PlayerGizmo.transform.eulerAngles.y - 45, 0);
+            Quaternion newRotation = Quaternion.Lerp(playerRigidBody.transform.rotation, to, Time.deltaTime * 20f);
+            playerRigidBody.MoveRotation(newRotation);
+        }
+        else if (v < 0 && h < 0)
+        {
+            to = Quaternion.Euler(0, PlayerGizmo.transform.eulerAngles.y - 135, 0);
+            Quaternion newRotation = Quaternion.Lerp(playerRigidBody.transform.rotation, to, Time.deltaTime * 20f);
+            playerRigidBody.MoveRotation(newRotation);
+        }
+        else if (h > 0 && v < 0)
+        {
+            to = Quaternion.Euler(0, PlayerGizmo.transform.eulerAngles.y + 135, 0);
+            Quaternion newRotation = Quaternion.Lerp(playerRigidBody.transform.rotation, to, Time.deltaTime * 20f);
+            playerRigidBody.MoveRotation(newRotation);
+        }
+        else if (v > 0)
+        {
+            to = Quaternion.Euler(0, PlayerGizmo.transform.eulerAngles.y, 0);
+            Quaternion newRotation = Quaternion.Lerp(playerRigidBody.transform.rotation, to, Time.deltaTime * 20f);
+            playerRigidBody.MoveRotation(newRotation);
+        }
+        else if (v < 0)
+        {
+            to = Quaternion.Euler(0, PlayerGizmo.transform.eulerAngles.y - 180, 0);
+            Quaternion newRotation = Quaternion.Lerp(playerRigidBody.transform.rotation, to, Time.deltaTime * 20f);
+            playerRigidBody.MoveRotation(newRotation);
+        }
+        else if (h < 0)
+        {
+            to = Quaternion.Euler(0, PlayerGizmo.transform.eulerAngles.y - 90, 0);
+            Quaternion newRotation = Quaternion.Lerp(playerRigidBody.transform.rotation, to, Time.deltaTime * 20f);
+            playerRigidBody.MoveRotation(newRotation);
+        }
+        else if (h > 0)
+        {
+            to = Quaternion.Euler(0, PlayerGizmo.transform.eulerAngles.y + 90, 0);
+            Quaternion newRotation = Quaternion.Lerp(playerRigidBody.transform.rotation, to, Time.deltaTime * 20f);
+            playerRigidBody.MoveRotation(newRotation);
+        }
+
+    }
+
+    #region Player Magic Bomb Ability
+    
+    GameObject[] projectiles = null;
+    GameObject currentProjectile = null;
+
+    public int numberOfProjectilesToCreate = 0;
+
+    private void InstantiateProjectiles()
+    {
+        for (int i = 0; i < numberOfProjectilesToCreate; i++)
+        {
+            projectiles[i] = Instantiate(Resources.Load("Prefabs/Projectiles/MagicBombProjectile") as GameObject);
+            projectiles[i].SetActive(false);
+        }
+    }
+
+    private GameObject ActivateProjectile()
+    {
+        for (int i = 0; i < numberOfProjectilesToCreate; i++)
+        {
+            if (projectiles[i].activeInHierarchy == false)
+            {
+                projectiles[i].SetActive(true);
+                projectiles[i].GetComponent<MagicBomb>().SummonBomb();
+                return projectiles[i];
+            }
+        }
+        return null;
+    }
+
+    private void ThrowProjectile(GameObject projectile)
+    {
+        try
+        {
+            projectile.GetComponent<MagicBomb>().ThrowBomb();
+        }
+        catch 
+        {
+            enableFaceFunction = true;
+        }
+    }
+
+
+    #endregion
+
+    /*void Move(float h, float v) {
+        Vector3 vector = new Vector3(h, 0f, v);
+        transform.Translate (vector, PlayerGizmo.transform);
+
+        if (h != 0 || v != 0) {
+            SetWalk (true);
+        } 
+        else {
+            SetWalk (false);	
+        }
+
+    }*/
+
+    public static PlayerState DIALOG { get; set; }
+}
