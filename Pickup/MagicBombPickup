@@ -1,0 +1,38 @@
+using UnityEngine;
+using System.Collections;
+
+public class MagicBombPickup : Pickup {
+
+    public GameObject Canvas;
+    public GameObject DialogHelper;
+
+    DialogHandlerScript DialogScript;
+    TrollController PlayerScript;
+
+	// Use this for initialization
+	void Start () {
+		offset = transform.position.y;
+		angle = 45f;
+        PlayerScript = GameObject.FindGameObjectWithTag("Player").GetComponent<TrollController>();
+        DialogScript = DialogHelper.GetComponent<DialogHandlerScript>();
+	}
+	
+	// Update is called once per frame
+	void Update () {
+		Oscillate (maxRange, oscillate, offset);
+		Rotate (angle);
+	}
+
+    void OnTriggerEnter(Collider other)
+    {
+        if (other.tag == "Player")
+        {
+            PlayerScript.DisablePlayer();
+            PlayerScript.magicBombAbility = true;
+            DialogScript.LoadText(gameObject.name);
+            Canvas.SetActive(true);
+            DialogScript.UpdateText();
+            gameObject.SetActive(false);
+        }
+    }
+}
