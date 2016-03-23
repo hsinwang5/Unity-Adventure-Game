@@ -1,0 +1,76 @@
+// List of search terms – replace <> with angle [] brackets
+// search <**todo> for code that still needs optimization/changing
+// search <**critical> for code that needs fixing ASAP
+// search <**bugsplat> for code that is buggy/broken/not working
+// search <**debug> for blocks of code/functions that were commented out
+
+using UnityEngine;
+using System.Collections;
+using UnityEngine.UI;
+
+public class BackupRobotKyleDialog : MonoBehaviour {
+	
+	public GameObject ButtonPrompt;
+	public GameObject Canvas;
+	public Text gameText;
+	
+	TextAsset File;
+	string[] strArr = null;
+	int lineNumber = 0;
+	int length;
+	bool allowTalk = false;
+	//getters and setters
+	
+	
+	// Use this for initialization
+	void Start () {
+		ButtonPrompt.gameObject.SetActive(false);
+	}
+	
+	// Update is called once per frame
+	void Update () {
+		print (strArr[1]);
+		if (allowTalk) {
+			bool talk = Input.GetButtonDown("Fire2");
+			if (talk){
+				Canvas.gameObject.SetActive(true);
+				gameText.text = strArr[lineNumber];
+			}
+		}
+	}
+	
+	void OnTriggerEnter (Collider other){
+		if (other.gameObject.tag == "Player") {
+			ButtonPrompt.gameObject.SetActive(true);
+			allowTalk = true;
+			File = Resources.Load (this.gameObject.name) as TextAsset;
+			char[] splitter = {'#'};
+			strArr = File.text.Split (splitter);
+			gameText.text = strArr[lineNumber];
+			length = strArr.Length;
+		}
+	}
+	
+	void OnTriggerExit (Collider other) {
+		if (other.gameObject.tag == "Player") {
+			ButtonPrompt.gameObject.SetActive(false);
+			allowTalk = false;
+			CancelButton ();
+		}
+	}
+	
+	public void NextButton(){
+		if (lineNumber < length-1) {
+			lineNumber += 1;
+			gameText.text = strArr[lineNumber];
+		} else {
+			CancelButton();
+		}
+	}
+	
+	public void CancelButton(){
+		Canvas.gameObject.SetActive (false);
+		lineNumber = 0;
+	}
+}
+
