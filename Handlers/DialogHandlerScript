@@ -1,0 +1,87 @@
+// List of search terms – replace <> with angle [] brackets
+// search <**todo> for code that still needs optimization/changing
+// search <**critical> for code that needs fixing ASAP
+// search <**bugsplat> for code that is buggy/broken/not working
+// search <**debug> for blocks of code/functions that were commented out
+
+using UnityEngine;
+using UnityEngine.UI;
+using System.Collections;
+
+/* This is a helper script that retrives and stores npc chat dialogs, then displays them 
+ * when the player talks to the NPC. To use it, create an empty gameobject, 
+ * name it DialogHandler, attach this script to the gameobject, 
+ * then give it the tag name "DialogHelper". Buttons are pre-defined, so
+ * simply drag DialogHelper into the button and select the 
+ * appropriate button function.*/
+
+//[**todo] create a system to track choices made by the player and change npc chat accordingly
+
+public class DialogHandlerScript : MonoBehaviour {
+
+	public GameObject Canvas;
+	public Text gameText;
+    public GameObject Player;
+	
+	TextAsset File;
+	string[] strArr = null;
+	int lineNumber = 0;
+	int length;
+    TrollController PlayerScript;
+
+	// Use this for initialization
+	void Start () {
+        PlayerScript = Player.GetComponent<TrollController>();
+	}
+	
+	// Update is called once per frame
+	void Update () {
+	
+	}
+
+	/// <summary>
+	/// Loads the text.
+	/// </summary>
+	/// <param name="name">Name.</param>
+	public void LoadText(string name){
+		File = Resources.Load ("NPCtext/" + name) as TextAsset;
+		char[] splitter = {'#'};
+		strArr = File.text.Split (splitter);
+		gameText.text = strArr[lineNumber];
+		length = strArr.Length;
+	}
+
+	public void UpdateText(){
+		gameText.text = strArr[lineNumber];
+	}
+
+	public void NextButton(){
+		if (lineNumber < length-1) {
+			lineNumber += 1;
+			gameText.text = strArr[lineNumber];
+		} else {
+			CancelButton();
+		}
+	}
+	
+	public void CancelButton(){
+		Canvas.gameObject.SetActive (false);
+        PlayerScript.EnablePlayer();
+		lineNumber = 0;
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
