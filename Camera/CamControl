@@ -65,7 +65,7 @@ public class CamControl : MonoBehaviour {
         * from the player, controlling zoom. 
         * [**todo] Use raycasting for a better, more accurate camera clip correction*/
 
-        //constants for camera travel [**todo] Why not just use new Vector3.forward?
+        //constants for camera travel [**todo] Couldn't I improve this with Vector3.forward?
         float x = transform.forward.x * -1;
         float y = transform.forward.y * -1;
         float z = transform.forward.z * -1;
