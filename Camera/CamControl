@@ -80,7 +80,9 @@ public class CamControl : MonoBehaviour {
         }
 
         cameraZoomDistance = Vector3.Distance(Target.transform.position, transform.position);
-
+        
+        //Sends out an invisible raycast line that searches for potential areas that could clip the camera,
+        //and adjusts the zoom to compensate. 
         if (Physics.Raycast(new Vector3(Target.transform.position.x, Target.transform.position.y + .5f, Target.transform.position.z), rayVector, out rayHit, cameraZoomDistance + .2f, cameraClipMask))
         {
             if (notStoredYet)
